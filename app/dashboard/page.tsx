@@ -35,7 +35,7 @@ export default function DashboardPage() {
         <div className="event-list">
           <button
             className="event-card"
-            onClick={() => router.push("/prototype")}
+            onClick={() => router.push("/meetings/A7K9L2")}
           >
             <span className="status open">진행 중</span>
 
