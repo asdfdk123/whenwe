@@ -39,7 +39,7 @@ export default function HomePage() {
               <ArrowRight />
             </Button>
 
-            <Button variant="ghost" onClick={() => router.push("/prototype")}>
+            <Button variant="ghost" onClick={() => router.push("/join/A7K9L2")}>
               참여 코드로 들어가기
             </Button>
           </div>
