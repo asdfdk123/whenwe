@@ -12,6 +12,7 @@ export type ParticipantDraft = {
   nickname: string;
   selectedDates: string[];
   availability: AvailabilityItem[];
+  submittedAt?: string;
 };
 
 const getStorageKey = (meetingId: string) => `whenwe:participant:${meetingId}`;
