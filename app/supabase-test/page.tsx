@@ -5,19 +5,19 @@ export default async function SupabaseTestPage() {
 
   const {
     data: { user },
-    error,
   } = await supabase.auth.getUser();
+
+  const { data: meetings, error } = await supabase.from("meetings").select("*");
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>Supabase Connection Test</h1>
-
-      <p>Connection: {error ? "ERROR" : "OK"}</p>
+      <h1>Supabase Test</h1>
 
       <pre>
         {JSON.stringify(
           {
             user: user?.id ?? null,
+            meetings,
             error: error?.message ?? null,
           },
           null,

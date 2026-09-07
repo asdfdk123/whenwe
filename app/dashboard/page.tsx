@@ -1,88 +1,125 @@
-"use client";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ArrowRight, CalendarDays, Clock3, Plus, Users } from "lucide-react";
 
-import { useRouter } from "next/navigation";
-import { ArrowRight, CalendarDays, Check, Link2, Plus } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
-import { Button } from "../../components/common/ww-button";
-import { PageShell } from "../../components/common/page-shell";
+export default async function DashboardPage() {
+  const supabase = await createClient();
 
-export default function DashboardPage() {
-  const router = useRouter();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user || user.is_anonymous) {
+    redirect(`/login?next=${encodeURIComponent("/dashboard")}`);
+  }
+
+  const { data: meetings, error } = await supabase
+    .from("meetings")
+    .select("*")
+    .eq("organizer_id", user.id)
+    .order("created_at", {
+      ascending: false,
+    });
+
+  if (error) {
+    console.error("Dashboard meeting load error:", error);
+  }
 
   return (
     <div className="whenwe-app">
-      <PageShell onHome={() => router.push("/")}>
+      <main className="page-shell">
         <div className="dashboard-head">
           <div>
-            <p className="flow-kicker">MY WHENWE</p>
-            <h2>안녕하세요, 민지님</h2>
+            <p className="flow-kicker">MY MEETINGS</p>
+
+            <h2>내 모임</h2>
+
+            <p className="muted-text">
+              만든 모임의 조율 현황을 확인할 수 있어요.
+            </p>
           </div>
 
-          <Button onClick={() => router.push("/meetings/new")}>
+          <Link href="/meetings/new" className="ww-button ww-primary">
             <Plus />새 모임
-          </Button>
+          </Link>
         </div>
 
-        <div className="section-title">
-          <h3>내 모임</h3>
+        {!meetings || meetings.length === 0 ? (
+          <div className="flow-card">
+            <CalendarDays />
 
-          <button className="text-button">
-            전체 보기
-            <ArrowRight />
-          </button>
-        </div>
+            <h3>아직 만든 모임이 없어요.</h3>
 
-        <div className="event-list">
-          <button
-            className="event-card"
-            onClick={() => router.push("/meetings/A7K9L2")}
-          >
-            <span className="status open">진행 중</span>
-
-            <h3>금요일 저녁 모임</h3>
-
-            <p>
-              <CalendarDays />
-              참여자 5명
+            <p className="muted-text">
+              첫 모임을 만들고 참여 링크를 공유해보세요.
             </p>
 
-            <div className="event-footer">
-              <span>조율 마감까지 2일</span>
+            <Link href="/meetings/new" className="ww-button ww-primary">
+              첫 모임 만들기
               <ArrowRight />
-            </div>
-          </button>
-
-          <button
-            className="event-card"
-            onClick={() => router.push("/prototype")}
-          >
-            <span className="status confirmed">확정됨</span>
-
-            <h3>프로젝트 킥오프</h3>
-
-            <p>
-              <CalendarDays />
-              참여자 8명
-            </p>
-
-            <div className="event-footer">
-              <span>6월 12일 (목) 오후 2:00</span>
-              <Check />
-            </div>
-          </button>
-        </div>
-
-        <div className="dashboard-empty">
-          <div>
-            <Link2 />
-            <span>공유 링크로 모임에 참여하세요</span>
+            </Link>
           </div>
+        ) : (
+          <div className="meeting-list">
+            {meetings.map((meeting) => {
+              const effectiveStatus =
+                meeting.status === "CONFIRMED"
+                  ? "CONFIRMED"
+                  : new Date(meeting.coordination_deadline) <= new Date()
+                    ? "CLOSED"
+                    : "OPEN";
 
-          <Button variant="outline" onClick={() => router.push("/prototype")}>
-            참여하기
-          </Button>
-        </div>
-      </PageShell>
+              const statusLabel = {
+                OPEN: "조율 중",
+                CLOSED: "조율 마감",
+                CONFIRMED: "확정됨",
+              }[effectiveStatus];
+
+              const deadline = new Intl.DateTimeFormat("ko-KR", {
+                month: "long",
+                day: "numeric",
+                timeZone: "Asia/Seoul",
+              }).format(new Date(meeting.coordination_deadline));
+
+              return (
+                <Link
+                  href={`/meetings/${meeting.public_code}`}
+                  key={meeting.id}
+                  className="meeting-card"
+                >
+                  <div>
+                    <div className="meeting-card-top">
+                      <span
+                        className={`status ${
+                          effectiveStatus === "CONFIRMED" ? "confirmed" : "open"
+                        }`}
+                      >
+                        {statusLabel}
+                      </span>
+
+                      <span className="muted-text">#{meeting.public_code}</span>
+                    </div>
+
+                    <h3>{meeting.name}</h3>
+
+                    <div className="meeting-meta">
+                      <span>
+                        <Clock3 />
+                        {deadline} 마감
+                      </span>
+                    </div>
+                  </div>
+
+                  <ArrowRight />
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
